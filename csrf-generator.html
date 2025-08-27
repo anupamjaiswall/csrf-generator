@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CSRF PoC Generator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -23,6 +24,32 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #6b7280;
         }
+        /* Custom styles to ensure dark mode and colors work with the pre-compiled Tailwind CSS */
+        body {
+            background-color: #111827;
+            color: #e5e7eb;
+        }
+        .bg-gray-800 { background-color: #1f2937; }
+        .bg-gray-900 { background-color: #111827; }
+        .text-gray-200 { color: #e5e7eb; }
+        .text-gray-400 { color: #9ca3af; }
+        .text-white { color: #ffffff; }
+        .border-gray-600 { border-color: #4b5563; }
+        .border-gray-700 { border-color: #374151; }
+        .bg-gray-700 { background-color: #374151; }
+        .bg-gray-600 { background-color: #4b5563; }
+        .text-gray-300 { color: #d1d5db; }
+        .text-yellow-300 { color: #fde047; }
+        .text-green-400 { color: #4ade80; }
+        .text-blue-400 { color: #60a5fa; }
+        .bg-blue-600 { background-color: #2563eb; }
+        .hover\:bg-blue-700:hover { background-color: #1d4ed8; }
+        .bg-green-600 { background-color: #16a34a; }
+        .hover\:bg-green-700:hover { background-color: #15803d; }
+        .bg-gray-500 { background-color: #6b7280; }
+        .hover\:bg-gray-500:hover { background-color: #6b7280; }
+        .focus\:ring-blue-500:focus { box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); }
+        .focus\:ring-gray-400:focus { box-shadow: 0 0 0 2px rgba(156, 163, 175, 0.5); }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4">
